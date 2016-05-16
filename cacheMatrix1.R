@@ -37,3 +37,11 @@ cacheSolve <- function(x, ...) {
         x$setInverse(invMatrix)
         invMatrix
 }
+
+#source("cacheMatrix1.R")
+#matrix1 <- matrix( c(7,3, -2,5),2,2)
+#matrix2 <- makeCacheMatrix(matrix1)
+#matrix2$get()
+#matrix2$setInverse()
+#matrix2$getInverse()
+#CacheSolve(matrix2)

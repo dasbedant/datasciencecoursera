@@ -1,0 +1,133 @@
+---
+title: "RR Peer Assignment 1"
+author: "Bedant Das"
+date: "December 10, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r mydirectory setup, echo=FALSE}
+setwd("C:/Users/user-pc/Documents/Bedant Data Science/datasciencecoursera/RR ASMT 1")
+ls()
+library(ggplot2)
+library(dplyr)
+library(knitr)
+```
+
+This assignment makes use of data from a personal activity 
+monitoring device. This device collects data at 5 minute intervals
+through out the day. The data consists of two months of data from 
+an anonymous individual collected during the months of 
+October and November, 2012 and include the number of steps taken 
+in 5 minute intervals each day.
+
+The data for this assignment can be downloaded from the course web site:
+
+##1. Code for reading in the dataset and/or processing the data
+```{r download and read, echo=TRUE}
+get.Activity.url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+download.file(get.Activity.url,destfile="./activity.zip",method="auto")  
+unzip(zipfile="./activity.zip",exdir=".")
+act1 <- read.csv("activity.csv")
+str(act1)
+```
+
+##2. Histogram of the total number of steps taken each day
+
+```{r Histogram plot 2, echo=FALSE}
+total_steps <- tapply(act1$steps, act1$date, FUN=sum, na.rm=TRUE)
+qplot(total_steps, colour=("red"), binwidth=500,main = "Histogram of the total number of steps taken each day", xlab="total number of steps taken each day")
+```
+
+##3.Mean and median number of steps taken each day
+```{r mean and median 3, echo=FALSE}
+mean(total_steps, na.rm=TRUE)
+median(total_steps, na.rm=TRUE)
+```
+
+
+##4. Time series plot of the average number of steps taken in the  5-minute interval that, on average, contains the maximum number of steps
+```{r timeseries plot 4, echo=FALSE}
+AvgSteps <- aggregate(x=list(steps=act1$steps), by=list(interval=act1$interval),
+                      FUN=mean, na.rm=TRUE)
+ggplot(data=AvgSteps, aes(x=interval, y=steps)) +
+  geom_line(colour ="red") +
+  ggtitle("Time series plot of average number of steps") +
+  xlab("5-minute interval") +
+  ylab("average number of steps taken")
+```
+
+
+##5. The 5-minute interval that, on average, contains the maximum number of steps
+```{r 5minute interval 5, echo=TRUE}
+AvgSteps[which.max(AvgSteps$steps),]
+```
+
+
+##6.Strategy is to replace each missing value with the mean value of its 5-minute interval
+```{r Imputting missing data, echo=TRUE}
+missing <- is.na(act1$steps)
+table(missing)
+
+## Function FillMissingVlaue
+FillMissingValue <- function(steps, interval) {
+  filled <- NA
+  if (!is.na(steps))
+    filled <- c(steps)
+  else
+    filled <- (AvgSteps[AvgSteps$interval==interval, "steps"])
+  return(filled)
+}
+filled.act1 <- act1
+filled.act1$steps <- mapply(FillMissingValue, filled.act1$steps,filled.act1$interval)
+
+```
+
+
+##7. Histogram of the total number of steps taken each day after missing values are imputed
+```{r histogram plot 7, echo=FALSE}
+total_steps <- tapply(filled.act1$steps, filled.act1$date, FUN=sum)
+qplot(total_steps, binwidth=500,colour =("red"),
+            xlab="total number of steps taken each day")
+mean(total_steps)
+median(total_steps)
+```
+
+
+##Function to check Week day or Weekend 
+```{r Get week end function , echo=FALSE}
+GetWeekend <- function(date) {
+  day <- weekdays(date)
+  if (day %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday"))
+    return("weekday")
+  else if (day %in% c("Saturday", "Sunday"))
+    return("weekend")
+  else
+    stop("invalid date")
+}
+
+```
+
+
+
+##8.Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+```{r Panel plot 8, echo=FALSE}
+filled.act1$date <- as.Date(filled.act1$date)
+filled.act1$day <- sapply(filled.act1$date, FUN=GetWeekend)
+
+AvgSteps <- aggregate(steps ~ interval + day, data=filled.act1, mean)
+ggplot(AvgSteps, aes(interval, steps)) + 
+  geom_line(colour= "red") + facet_grid(day ~ .) +
+  ggtitle(" Panel plot comparing average steps across Weekdays & Weekend") +
+  xlab("5-minute interval") + ylab("Number of steps")
+```
+
